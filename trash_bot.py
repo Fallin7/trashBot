@@ -34,6 +34,9 @@ GIORNI = {
 
 GIORNI_NOMI = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"]
 
+def isCoffeeDay(day):
+    return day in [1,3]
+
 # Funzione per convertire l'indice del giorno nel nome in italiano
 def get_giorno_nome(indice):
     return GIORNI_NOMI[indice]
@@ -299,7 +302,7 @@ async def coffee_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     current_weekday = today.weekday()  # 0 = Lunedì, ..., 6 = Domenica
     
     # 1. Mostra i giorni rimanenti di questa settimana (da oggi a Venerdì)
-    for day_idx in range(current_weekday, 5):  # Da oggi fino a Venerdì
+    for day_idx in (day for day in range(current_weekday, 5) if isCoffeeDay(day)):  # Da oggi fino al weekend, solo martedì e giovedì
         day = today + timedelta(days=(day_idx - current_weekday))
         day_name = GIORNI_NOMI[day_idx]
         day_date = day_name + day.strftime(" %d/%m")  # es. "Mercoledì 25/02"
@@ -310,7 +313,7 @@ async def coffee_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     
     # 2. Mostra tutti i giorni della settimana prossima (Lunedì - Venerdì)
     next_monday = today + timedelta(days=(7 - current_weekday))  # Trova il prossimo Lunedì
-    for day_idx in range(5):  # 0 = Lunedì, ..., 4 = Venerdì
+    for day_idx in (day for day in range(5) if isCoffeeDay(day)):  # Solo i martedì e giovedì
         next_day = next_monday + timedelta(days=day_idx)
         day_name = GIORNI_NOMI[day_idx]
         day_date = day_name + next_day.strftime(" %d/%m")  # es. "Lunedì 03/03"
@@ -462,14 +465,15 @@ async def view_bookings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             else:
                 message += "• -\n"
             
-            # Prenotazioni macchina caffè
-            message += "*Prenotati per la macchina del caffè:*\n"
-            if booking_date_display in coffee_bookings:
-                for user in coffee_bookings[booking_date_display]:
-                    message += f"• {escape_markdown_basic(user)}\n"
-            else:
-                message += "• -\n"
-            
+            # Prenotazioni macchina caffè, solo se il giorno da stampare è martedì o giovedì
+            if isCoffeeDay(day_idx):
+                message += "*Prenotati per la macchina del caffè:*\n"
+                if booking_date_display in coffee_bookings:
+                    for user in coffee_bookings[booking_date_display]:
+                        message += f"• {escape_markdown_basic(user)}\n"
+                else:
+                    message += "• -\n"
+                
             message += "\n"
         
         message += "───────────────────\n\n"
@@ -499,13 +503,14 @@ async def view_bookings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         else:
             message += "• -\n"
         
-        message += "*Prenotati per la macchina del caffè:*\n"
-        if booking_date_display in coffee_bookings:
-            for user in coffee_bookings[booking_date_display]:
-                message += f"• {escape_markdown_basic(user)}\n"
-        else:
-            message += "• -\n"
-        
+        if isCoffeeDay(day_idx):
+            message += "*Prenotati per la macchina del caffè:*\n"
+            if booking_date_display in coffee_bookings:
+                for user in coffee_bookings[booking_date_display]:
+                    message += f"• {escape_markdown_basic(user)}\n"
+            else:
+                message += "• -\n"
+            
         message += "\n"
     
     # **Mandiamo il messaggio con Markdown normale**
@@ -633,12 +638,13 @@ async def view_schedule(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             message += "• -\n"
         
         # Prenotazioni macchina caffè
-        message += "*Prenotati per la macchina del caffè:*\n"
-        if booking_date_display in coffee_bookings:
-            for user in coffee_bookings[booking_date_display]:
-                message += f"• {user}\n"
-        else:
-            message += "• -\n"
+        if isCoffeeDay(i):
+            message += "*Prenotati per la macchina del caffè:*\n"
+            if booking_date_display in coffee_bookings:
+                for user in coffee_bookings[booking_date_display]:
+                    message += f"• {user}\n"
+            else:
+                message += "• -\n"
         
         message += "\n"
         remaining_days = True
